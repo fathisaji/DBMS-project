@@ -1,0 +1,118 @@
+
+student,lecturer tables
+
+CREATE VIEW Proper_students_final_results  AS
+     SELECT DISTINCT g.student_id, g.full_name, g.ENG1222_grade, g.ICT1212_grade, g.ICT1233_grade, g.ICT1222_grade, g.ICT1242_grade, g.TCS1212_grade, g.TMS1233_grade, g.ICT1253_grade, g.SGPA
+     FROM students_final_grades g
+     JOIN (
+         SELECT DISTINCT f.student_id, e.course_id
+         FROM Final_Exam_Eligibility e
+         JOIN ALL_final_marks f ON e.student_id = f.Student_ID
+         WHERE e.final_exam_eligibility = 'E'
+     ) AS eligible_students ON g.student_id = eligible_students.student_id;
+
+
+
+create view repeat_students as
+    SELECT * FROM students_final_grades ORDER BY student_id DESC LIMIT 6;
+
+
+
+CREATE VIEW repeaters_results AS
+SELECT
+    student_id,
+    full_name,
+    CASE
+        WHEN student_id IN ('TG997','TG845') THEN 'C'
+        WHEN ENG1222_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ENG1222_grade,
+    CASE 
+        WHEN student_id IN ('TG897', 'TG867') THEN 'C'
+        WHEN ICT1212_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ICT1212_grade,
+    CASE 
+        WHEN student_id IN ('TG897', 'TG857') THEN 'C'
+        WHEN ICT1233_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ICT1233_grade,
+    CASE 
+        WHEN student_id IN ('TG897', 'TG857','TG845') THEN 'C'
+        WHEN TMS1233_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS TMS1233_grade,
+   CASE 
+        WHEN student_id IN ('TG827', 'TG857') THEN 'C'
+        WHEN ICT1222_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ICT1222_grade,
+    
+ CASE 
+        WHEN student_id IN ('TG897', 'TG857') THEN 'C'
+        WHEN ICT1242_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ICT1242_grade,
+  
+CASE 
+        WHEN student_id IN ('TG847', 'TG857') THEN 'C'
+        WHEN TCS1212_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS TCS1212_grade,
+   
+    CASE 
+        WHEN student_id IN ('TG897', 'TG867') THEN 'C'
+        WHEN ICT1253_grade IS NULL THEN NULL
+        ELSE '-'
+    END AS ICT1253_grade
+FROM repeat_students
+
+
+    ROUND(SUM(grade_points) / SUM(credits), 2) AS SGPA
+
+FROM (
+    SELECT
+        RS.student_id,
+        RS.full_name,
+        IF(AGP.ENG1222 IS NOT NULL, AGP.ENG1222 * C1.credits, 0) + 
+        IF(AGP.ICT1212 IS NOT NULL, AGP.ICT1212 * C2.credits, 0) + 
+        IF(AGP.ICT1233 IS NOT NULL, AGP.ICT1233 * C3.credits, 0) + 
+        -- Add similar lines for other courses...
+
+        AS grade_points,
+
+        IF(AGP.ENG1222 IS NOT NULL, C1.credits, 0) +
+        IF(AGP.ICT1212 IS NOT NULL, C2.credits, 0) +
+        IF(AGP.ICT1233 IS NOT NULL, C3.credits, 0) +
+        (CASE WHEN AGP.ICT1222 IS NOT NULL THEN C4.credits ELSE 0 END) +
+            (CASE WHEN AGP.ICT1242 IS NOT NULL THEN C5.credits ELSE 0 END) +
+            (CASE WHEN AGP.TCS1212 IS NOT NULL THEN C6.credits ELSE 0 END) +
+            (CASE WHEN AGP.TMS1233 IS NOT NULL THEN C7.credits ELSE 0 END) +
+            (CASE WHEN AGP.ICT1253 IS NOT NULL THEN C8.credits ELSE 0 END)
+        ), 2) AS SGPA
+        
+
+
+    FROM repeat_students RS
+    JOIN All_Grades_points AGP ON RS.student_id = AGP.student_id
+    LEFT JOIN COURSE C1 ON AGP.ENG1222 IS NOT NULL AND AGP.ENG1222 > 0 AND C1.course_id = 'ENG1222'
+    LEFT JOIN COURSE C2 ON AGP.ICT1212 IS NOT NULL AND AGP.ICT1212 > 0 AND C2.course_id = 'ICT1212'
+    LEFT JOIN COURSE C3 ON AGP.ICT1233 IS NOT NULL AND AGP.ICT1233 > 0 AND C3.course_id = 'ICT1233'
+    LEFT JOIN COURSE C4 ON AGP.ICT1222 IS NOT NULL AND AGP.ICT1222 > 0 AND C4.course_id = 'ICT1222'
+LEFT JOIN COURSE C5 ON AGP.ICT1242 IS NOT NULL AND AGP.ICT1242 > 0 AND C5.course_id = 'ICT1242'
+LEFT JOIN COURSE C6 ON AGP.TCS1212 IS NOT NULL AND AGP.TCS1212 > 0 AND C6.course_id = 'TCS1212'
+LEFT JOIN COURSE C7 ON AGP.TMS1233 IS NOT NULL AND AGP.TMS1233 > 0 AND C7.course_id = 'TMS1233'
+LEFT JOIN COURSE C8 ON AGP.ICT1253 IS NOT NULL AND AGP.ICT1253 > 0 AND C8.course_id = 'ICT1253'
+GROUP BY AGP.student_id;
+
+
+procedure
+
+CREATE PROCEDURE GetStudentResult(IN studentID VARCHAR(10))
+    BEGIN
+    SELECT * FROM students_final_grades WHERE student_id = studentID;
+    END //
+
+privileges student,lecturer
+
+
